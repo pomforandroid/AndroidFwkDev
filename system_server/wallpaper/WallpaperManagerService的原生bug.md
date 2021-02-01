@@ -119,3 +119,69 @@
     }
   ```
 - requestServiceBindingLocked 真正的开始执行把服务启动的一系列工作。
+
+# bindService过程出现Start proc Time out，会回调onServiceDisconnected吗？
+
+## Ams.processStartTimedOutLocked
+  - ActiveServices.processStartTimedOutLocked
+  -
+      ```
+      ActiveServices.bringDownServiceLocked
+      for (int conni=r.connections.size()-1; conni>=0; conni--) {
+          ArrayList<ConnectionRecord> c = r.connections.valueAt(conni);
+          for (int i=0; i<c.size(); i++) {
+              ConnectionRecord cr = c.get(i);
+              // There is still a connection to the service that is
+              // being brought down.  Mark it as dead.
+              cr.serviceDead = true;
+              try {
+                  cr.conn.connected(r.name, null, true);
+              } catch (Exception e) {
+                  Slog.w(TAG, "Failure disconnecting service " + r.name +
+                        " to connection " + c.get(i).conn.asBinder() +
+                        " (in " + c.get(i).binding.client.processName + ")", e);
+              }
+          }
+      ```
+  - LoadedApk.connected
+    - doConnected(name, service, dead);
+    -  
+        ```
+         public void doConnected(ComponentName name, IBinder service, boolean dead) {
+            //old 为null，因为进程没起来，下面if(service!=null)没进去过
+            //mActiveConnections 从未push过这个service
+            old = mActiveConnections.get(name);
+            if (service != null) {
+                    // A new service is being connected... set it all up.
+                    info = new ConnectionInfo();
+                    info.binder = service;
+                    info.deathMonitor = new DeathMonitor(name, service);
+                    try {
+                        service.linkToDeath(info.deathMonitor, 0);
+                        mActiveConnections.put(name, info);
+                    } catch (RemoteException e) {
+                        // This service was dead before we got it...  just
+                        // don't do anything with it.
+                        mActiveConnections.remove(name);
+                        return;
+                    }
+              }
+            ...
+            //所以下面只会执行onBindingDied
+            if (old != null) {
+                mConnection.onServiceDisconnected(name);
+            }
+            //传进来是true
+            if (dead) {
+                mConnection.onBindingDied(name);
+            }
+
+          }
+        ```
+
+
+# 修复此bug方案
+## 方案一
+  - 在onBindingDied 里clearWallpaper
+## 方案二
+  - 在调用方app里调用clearWallpaer
