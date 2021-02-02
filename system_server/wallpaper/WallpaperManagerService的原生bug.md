@@ -82,8 +82,8 @@
   执行了bindServiceAsUser返回结果true并不代表一定保证服务启动成功
   当该通过bindServiceAsUser 启动该服务却启动超时时
   日志体现:
-  `am_process_start_timeout: [0,2499,10015,com.rightware.kanzi.carmodel]`
-  `ActivityManager: Forcing bringing down service: ServiceRecord{bfd0085 u0 com.rightware.kanzi.carmodel/.LiveWallpaperService`
+  `am_process_start_timeout: [0,2499,10015,com.xxx.xxx]`
+  `ActivityManager: Forcing bringing down service: ServiceRecord{bfd0085 u0 com.xxx.xxx/.LiveWallpaperService`
   所以会wallpaper.connection = newConn，等到后面进程重启，重新执行setWallpaperComponent后，changingToSame就会return true
   导致再也无法设置壁纸。
 
